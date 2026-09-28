@@ -1,6 +1,6 @@
 # Diagrams
 
-MDReader renders fenced Mermaid blocks as interactive SVG diagrams in the document view.
+CHEMDReader renders fenced Mermaid blocks as interactive SVG diagrams in the document view.
 
 ```mermaid
 flowchart TB

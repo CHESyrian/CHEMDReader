@@ -22,19 +22,32 @@ MAX_FILE_BYTES = int(os.environ.get("MAX_FILE_BYTES", str(2 * 1024 * 1024)))
 app = Flask(__name__)
 app.config.update(JSON_SORT_KEYS=False, MAX_CONTENT_LENGTH=MAX_FILE_BYTES)
 
-ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {
-    "p", "pre", "code", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote",
-    "ul", "ol", "li", "hr", "br", "table", "thead", "tbody", "tr", "th", "td",
-    "del", "input", "div", "span", "img",
+ALLOWED_TAGS = {
+    # HTML document and text elements.
+    "a", "abbr", "address", "article", "aside", "audio", "b", "bdi", "bdo", "blockquote",
+    "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data",
+    "datalist", "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "fieldset",
+    "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head",
+    "header", "hgroup", "hr", "html", "i", "iframe", "img", "input", "ins", "kbd", "label",
+    "legend", "li", "link", "main", "map", "mark", "menu", "meta", "meter", "nav", "noscript",
+    "object", "ol", "optgroup", "option", "output", "p", "picture", "pre", "progress", "q",
+    "rp", "rt", "ruby", "s", "samp", "script", "search", "section", "select", "slot", "small",
+    "source", "span", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td",
+    "template", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul",
+    "var", "video", "wbr",
+    # SVG elements commonly emitted by diagrams and icons.
+    "svg", "animate", "circle", "clipPath", "defs", "ellipse", "g", "image", "line", "linearGradient",
+    "marker", "mask", "path", "pattern", "polygon", "polyline", "radialGradient", "rect", "stop",
+    "text", "tspan", "use", "view",
 }
-ALLOWED_ATTRIBUTES = {
-    "a": ["href", "title", "rel"],
-    "img": ["src", "alt", "title", "width", "height", "loading"],
-    "code": ["class"],
-    "th": ["align"], "td": ["align"],
-    "input": ["type", "checked", "disabled"],
-    "*": ["id", "class"],
-}
+
+
+def allow_all_attributes(_tag: str, _name: str, _value: str) -> bool:
+    """Allow every attribute so authored Markdown HTML is preserved verbatim."""
+    return True
+
+
+ALLOWED_ATTRIBUTES = {"*": allow_all_attributes}
 
 
 def safe_path(relative_path: str, *, must_exist: bool = True) -> Path:
@@ -85,9 +98,6 @@ def _rewrite_asset_urls(html: str, markdown_path: str) -> str:
 
 
 def render_markdown(raw: str, markdown_path: str = "") -> str:
-    # Remove executable or hidden document-level elements before Markdown parsing.
-    # Bleach strips their tags, but retaining their text is surprising in a reader.
-    raw = re.sub(r"<\s*(script|style|iframe|object|embed)\b[^>]*>.*?<\s*/\s*\1\s*>", "", raw, flags=re.IGNORECASE | re.DOTALL)
     rendered = markdown.markdown(raw, extensions=["fenced_code", "tables", "toc", "sane_lists"])
     cleaned = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, protocols={"http", "https", "mailto"}, strip=True)
     return _rewrite_asset_urls(cleaned, markdown_path)
@@ -98,7 +108,7 @@ def add_security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'")
     return response
 
 

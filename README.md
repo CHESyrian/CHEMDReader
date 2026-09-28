@@ -1,4 +1,4 @@
-# MDReader
+# CHEMDReader
 
 A fast, private, one-page Markdown folder reader built with Flask, vanilla JavaScript, and CSS. It supports a secure server-side workspace plus optional browser-only folder selection.
 
@@ -7,7 +7,7 @@ A fast, private, one-page Markdown folder reader built with Flask, vanilla JavaS
 - Recursive sidebar tree for Markdown files (`.md`, `.markdown`, `.mdown`, `.mkdn`)
 - Secure `ROOT_DIR` sandbox with traversal protection and symlink skipping
 - Markdown rendering with fenced code, tables, TOC, and Bleach sanitization
-- Mermaid diagram rendering for fenced `mermaid` code blocks using a bundled local renderer
+- Mermaid diagram rendering for fenced `mermaid` code blocks using Mermaid from the jsDelivr CDN
 - Relative images served through a guarded `/api/asset` endpoint
 - Search (`Cmd/Ctrl + K`), active-file highlighting, loading and error states
 - Responsive mobile navigation and keyboard-friendly controls
@@ -25,6 +25,17 @@ ROOT_DIR=/path/to/your/docs python app.py
 ```
 
 Open <http://127.0.0.1:5000>. If `ROOT_DIR` is omitted, the included `sample_docs/` folder is used.
+
+### Launcher script
+
+The executable `bin/mdreader` activates the existing shared `~/PyVenv` environment and starts the server without opening a browser. It does not create environments, install packages, or write setup markers; create and prepare `~/PyVenv` separately first:
+
+```bash
+python3 -m venv ~/PyVenv
+~/PyVenv/bin/python -m pip install -r requirements.txt
+bin/mdreader /path/to/your/docs
+bin/mdreader --help
+```
 
 ## Run on Windows PowerShell
 
@@ -55,5 +66,3 @@ The tests cover tree listing, traversal rejection, XSS sanitization, image URL r
 ## Security notes
 
 The server never accepts an arbitrary filesystem path. Every path is resolved beneath `ROOT_DIR`; hidden entries and symlinks are excluded; only Markdown files are readable through the file API; and rendered HTML is sanitized with an allowlist. Run behind a trusted local interface unless you add authentication for shared environments.
-
-# CreatedBy : `CHESyrian` with help `MANUS AI`

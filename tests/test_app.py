@@ -41,7 +41,7 @@ def test_file_endpoint_returns_sanitized_html(client):
     response = client.get("/api/file", query_string={"path": "README.md"})
     assert response.status_code == 200
     html = response.get_json()["html"]
-    assert "<h1 id=\"welcome-to-mdreader\">Welcome to MDReader</h1>" in html
+    assert "<h1 id=\"welcome-to-chemdreader\">Welcome to CHEMDReader</h1>" in html
     assert "<script" not in html
 
 
@@ -50,9 +50,9 @@ def test_missing_file_returns_not_found(client):
     assert response.status_code == 404
 
 
-def test_markdown_html_is_sanitized():
-    html = render_markdown('<script>alert("x")</script>\n\n# Safe')
-    assert "script" not in html.lower()
+def test_markdown_html_preserves_all_tags_and_attributes():
+    html = render_markdown('<mark data-note="keep-me">Safe</mark>\n\n# Safe')
+    assert '<mark data-note="keep-me">Safe</mark>' in html
     assert "<h1 id=\"safe\">Safe</h1>" in html
 
 

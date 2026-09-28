@@ -4,16 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
-  <title>MDReader · {{ root_name }}</title>
+  <title>CHEMDReader · {{ root_name }}</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='brand-icon.png') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand-icon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sans@5/400.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sans@5/400-italic.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@fontsource-variable/recursive@5/index.css"
+  />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Document navigation">
       <div class="sidebar-header">
-        <a class="brand" href="/" aria-label="MDReader home"><img class="brand-mark" src="{{ url_for('static', filename='brand-icon.png') }}" alt="" aria-hidden="true"><span>MDReader</span></a>
+        <a class="brand" href="/" aria-label="CHEMDReader home"><img class="brand-mark" src="{{ url_for('static', filename='brand-icon.png') }}" alt="" aria-hidden="true"><span>CHEMDReader</span></a>
         <button class="icon-button mobile-close" id="close-sidebar" type="button" aria-label="Close navigation">×</button>
       </div>
       <div class="workspace-card">
@@ -57,7 +63,7 @@
       <footer class="statusbar"><span id="status-message">Ready to explore</span><span class="status-right"><span class="live-dot"></span> Local only</span></footer>
     </main>
   </div>
-  <script src="{{ url_for('static', filename='mermaid.min.js') }}" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js" defer></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>
