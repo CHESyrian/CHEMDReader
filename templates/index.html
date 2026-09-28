@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>MDReader · {{ root_name }}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='brand-icon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Document navigation">
+      <div class="sidebar-header">
+        <a class="brand" href="/" aria-label="MDReader home"><img class="brand-mark" src="{{ url_for('static', filename='brand-icon.png') }}" alt="" aria-hidden="true"><span>MDReader</span></a>
+        <button class="icon-button mobile-close" id="close-sidebar" type="button" aria-label="Close navigation">×</button>
+      </div>
+      <div class="workspace-card">
+        <div class="eyebrow">WORKSPACE</div>
+        <div class="workspace-name" id="workspace-name">{{ root_name }}</div>
+        <div class="workspace-meta"><span class="status-dot"></span><span id="workspace-status">Server folder</span></div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="button button-primary" id="open-folder" type="button"><span>＋</span> Open local folder</button>
+        <input id="folder-input" type="file" webkitdirectory directory multiple hidden>
+      </div>
+      <div class="tree-heading"><span>FILES</span><span class="file-count" id="file-count">—</span></div>
+      <nav class="tree" id="tree" aria-label="Markdown files"><div class="tree-loading"><span class="spinner"></span> Loading files…</div></nav>
+      <div class="sidebar-footer"><span class="kbd">⌘ K</span><span>CreatedBy : CHESyrian</span></div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="breadcrumbs" id="breadcrumbs"><span>Workspace</span><span class="crumb-separator">/</span><strong>Overview</strong></div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="search-toggle" type="button" aria-label="Search documents">⌕</button>
+          <button class="icon-button mobile-menu" id="open-sidebar" type="button" aria-label="Open navigation">☰</button>
+        </div>
+      </header>
+      <section class="search-panel" id="search-panel" hidden><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Search files…" autocomplete="off"><kbd>Esc</kbd></label><div class="search-results" id="search-results"></div></section>
+      <section class="content-wrap" id="content-wrap">
+        <div class="welcome-view" id="welcome-view">
+          <div class="welcome-orb orb-one"></div><div class="welcome-orb orb-two"></div>
+          <div class="welcome-icon">✦</div><div class="eyebrow accent">YOUR DOCUMENTATION, IN FOCUS</div>
+          <h1>Read better.<br><em>Think deeper.</em></h1>
+          <p class="welcome-copy">Select a Markdown file from the sidebar to open it here. Your workspace is private, fast, and distraction-free.</p>
+          <div class="welcome-tip"><span class="tip-icon">⌘</span><span>Tip: press <strong>⌘ K</strong> to search your files</span></div>
+        </div>
+        <article class="document-view" id="document-view" hidden>
+          <div class="document-meta"><span class="file-pill" id="document-type">MARKDOWN</span><span id="document-size"></span></div>
+          <h1 class="document-title" id="document-title"></h1>
+          <div class="document-body" id="document-body"></div>
+        </article>
+        <div class="error-view" id="error-view" hidden><div class="error-icon">!</div><h2>Couldn't open that file</h2><p id="error-message">Try selecting another document.</p><button class="button button-secondary" id="retry-button" type="button">Try again</button></div>
+      </section>
+      <footer class="statusbar"><span id="status-message">Ready to explore</span><span class="status-right"><span class="live-dot"></span> Local only</span></footer>
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='mermaid.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
