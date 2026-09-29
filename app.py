@@ -31,7 +31,7 @@ ALLOWED_TAGS = {
     "header", "hgroup", "hr", "html", "i", "iframe", "img", "input", "ins", "kbd", "label",
     "legend", "li", "link", "main", "map", "mark", "menu", "meta", "meter", "nav", "noscript",
     "object", "ol", "optgroup", "option", "output", "p", "picture", "pre", "progress", "q",
-    "rp", "rt", "ruby", "s", "samp", "script", "search", "section", "select", "slot", "small",
+    "rp", "rt", "ruby", "s", "samp", "search", "section", "select", "slot", "small",
     "source", "span", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td",
     "template", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul",
     "var", "video", "wbr",
@@ -42,8 +42,12 @@ ALLOWED_TAGS = {
 }
 
 
-def allow_all_attributes(_tag: str, _name: str, _value: str) -> bool:
-    """Allow every attribute so authored Markdown HTML is preserved verbatim."""
+def allow_all_attributes(tag: str, name: str, value: str) -> bool:
+    """Preserve authored attributes except executable event handlers and URLs."""
+    if name.lower().startswith("on"):
+        return False
+    if name.lower() in {"href", "src", "action", "formaction", "xlink:href"}:
+        return not value.strip().lower().lstrip().startswith(("javascript:", "vbscript:", "data:text/html"))
     return True
 
 
@@ -98,9 +102,25 @@ def _rewrite_asset_urls(html: str, markdown_path: str) -> str:
 
 
 def render_markdown(raw: str, markdown_path: str = "") -> str:
-    rendered = markdown.markdown(raw, extensions=["fenced_code", "tables", "toc", "sane_lists"])
+    parser = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"])
+    rendered = parser.convert(raw)
     cleaned = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, protocols={"http", "https", "mailto"}, strip=True)
     return _rewrite_asset_urls(cleaned, markdown_path)
+
+
+def document_index(raw: str) -> list[dict[str, str | int]]:
+    """Extract heading titles for the right-side document index."""
+    parser = markdown.Markdown(extensions=["toc"])
+    parser.convert(raw)
+    result: list[dict[str, str | int]] = []
+
+    def visit(items: list[dict]) -> None:
+        for item in items:
+            result.append({"id": item["id"], "name": item["name"], "level": item["level"]})
+            visit(item.get("children", []))
+
+    visit(parser.toc_tokens)
+    return result
 
 
 @app.after_request
@@ -136,7 +156,39 @@ def file_content():
         raw = path.read_text(encoding="utf-8-sig")
     except (ValueError, FileNotFoundError, UnicodeDecodeError, OSError):
         return jsonify({"error": "Markdown file could not be read."}), 404
-    return jsonify({"path": Path(relative).as_posix(), "name": path.name, "html": render_markdown(raw, relative), "bytes": len(raw.encode("utf-8"))})
+    return jsonify({"path": Path(relative).as_posix(), "name": path.name, "raw": raw, "html": render_markdown(raw, relative), "index": document_index(raw), "bytes": len(raw.encode("utf-8"))})
+
+
+@app.post("/api/file")
+def save_file_content():
+    """Save edited Markdown beneath ROOT_DIR without permitting path escape."""
+    payload = request.get_json(silent=True) or {}
+    relative = str(payload.get("path", ""))
+    raw = payload.get("content")
+    if not isinstance(raw, str):
+        return jsonify({"error": "Markdown content must be a string."}), 400
+    if len(raw.encode("utf-8")) > MAX_FILE_BYTES:
+        return jsonify({"error": "This file is larger than the configured limit."}), 413
+    try:
+        path = safe_path(relative)
+        if not path.is_file() or path.suffix.lower() not in ALLOWED_EXTENSIONS:
+            abort(404)
+        path.write_text(raw, encoding="utf-8")
+    except (ValueError, FileNotFoundError, OSError):
+        return jsonify({"error": "Markdown file could not be saved."}), 404
+    return jsonify({"path": Path(relative).as_posix(), "name": path.name, "raw": raw, "html": render_markdown(raw, relative), "index": document_index(raw), "bytes": len(raw.encode("utf-8"))})
+
+
+@app.post("/api/preview")
+def preview_markdown():
+    """Render unsaved editor content without writing it to disk."""
+    payload = request.get_json(silent=True) or {}
+    raw = payload.get("content")
+    if not isinstance(raw, str):
+        return jsonify({"error": "Markdown content must be a string."}), 400
+    if len(raw.encode("utf-8")) > MAX_FILE_BYTES:
+        return jsonify({"error": "This content is larger than the configured limit."}), 413
+    return jsonify({"html": render_markdown(raw), "index": document_index(raw)})
 
 
 @app.get("/api/asset")

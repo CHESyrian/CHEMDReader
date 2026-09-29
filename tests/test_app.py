@@ -45,6 +45,37 @@ def test_file_endpoint_returns_sanitized_html(client):
     assert "<script" not in html
 
 
+def test_file_endpoint_returns_document_index(client):
+    response = client.get("/api/file", query_string={"path": "guides/getting-started.md"})
+    assert response.status_code == 200
+    index = response.get_json()["index"]
+    assert any(item["name"] == "Getting started" for item in index)
+
+
+def test_preview_endpoint_renders_without_writing(client):
+    response = client.post("/api/preview", json={"content": "# Live\n\n`preview`"})
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert '<h1 id="live">Live</h1>' in payload["html"]
+    assert payload["index"][0]["name"] == "Live"
+
+
+def test_save_endpoint_writes_markdown_inside_root(client):
+    target = Path(__file__).parents[1] / "sample_docs" / "_editor-test.md"
+    try:
+        target.write_text("# Original\n")
+        response = client.post("/api/file", json={"path": "_editor-test.md", "content": "# Saved\n"})
+        assert response.status_code == 200
+        assert target.read_text() == "# Saved\n"
+    finally:
+        target.unlink(missing_ok=True)
+
+
+def test_save_endpoint_rejects_traversal(client):
+    response = client.post("/api/file", json={"path": "../outside.md", "content": "# Unsafe"})
+    assert response.status_code == 404
+
+
 def test_missing_file_returns_not_found(client):
     response = client.get("/api/file", query_string={"path": "missing.md"})
     assert response.status_code == 404
@@ -54,6 +85,13 @@ def test_markdown_html_preserves_all_tags_and_attributes():
     html = render_markdown('<mark data-note="keep-me">Safe</mark>\n\n# Safe')
     assert '<mark data-note="keep-me">Safe</mark>' in html
     assert "<h1 id=\"safe\">Safe</h1>" in html
+
+
+def test_code_and_unsafe_event_attributes_are_handled():
+    html = render_markdown('`quoted string`\n\n<span data-kind="example" onclick="alert(1)">text</span>')
+    assert '<code>quoted string</code>' in html
+    assert 'data-kind="example"' in html
+    assert 'onclick' not in html
 
 
 def test_relative_image_is_routed_through_asset_endpoint():

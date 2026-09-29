@@ -10,6 +10,8 @@ A fast, private, one-page Markdown folder reader built with Flask, vanilla JavaS
 - Mermaid diagram rendering for fenced `mermaid` code blocks using Mermaid from the jsDelivr CDN
 - Relative images served through a guarded `/api/asset` endpoint
 - Search (`Cmd/Ctrl + K`), active-file highlighting, loading and error states
+- Resizable/collapsible file sidebar, clickable document index, and light/dark theme toggle
+- Live Markdown editor with split preview, server-side save, and browser-folder download fallback
 - Responsive mobile navigation and keyboard-friendly controls
 - **Open local folder** uses `webkitdirectory` and renders selected files in-browser without uploading them
 - Configurable file size limit via `MAX_FILE_BYTES`
@@ -53,6 +55,8 @@ py app.py
 - `GET /` — reader UI
 - `GET /api/tree` — recursive Markdown tree
 - `GET /api/file?path=guides/intro.md` — sanitized rendered HTML
+- `POST /api/file` — save edited Markdown content beneath `ROOT_DIR`
+- `POST /api/preview` — render unsaved Markdown for live preview without writing it
 - `GET /api/asset?path=images/diagram.png` — guarded image delivery
 
 ## Verification
