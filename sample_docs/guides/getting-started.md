@@ -15,3 +15,23 @@ Use **Cmd/Ctrl + K** to search across the workspace. On a phone, the menu button
 - Markdown files are discovered recursively.
 - Images are resolved relative to their source document.
 - Unsafe HTML is removed before it reaches the browser.
+
+## Rich Markdown rendering
+
+Lists, links, equations, and blockquotes render as formatted content rather than source text. Use `>` for a quote and `>>` or `>>>` for compact nested quote levels:
+
+```markdown
+> Keep the important idea visible.
+>> Add supporting context here.
+>>> Add a deeper note here.
+```
+
+Standard nested Markdown (`> >`) is supported too. The same rendering behavior is available in server workspaces, local-folder mode, and the live editor preview. Quote markers inside fenced code blocks remain code.
+
+For separate quoted paragraphs, include a blank quote line:
+
+```markdown
+> First paragraph.
+>
+> Second paragraph.
+```

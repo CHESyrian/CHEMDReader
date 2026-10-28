@@ -8,6 +8,10 @@ CHEMDReader keeps the interface out of the way so the content can take center st
 
 > Good documentation is a product feature, not an afterthought.
 
+> CHEMDReader supports nested quotes.
+>> Use `>>` for a compact second level.
+>>> Use `>>>` for a third level.
+
 | Feature | Status |
 | --- | --- |
 | Secure tree | Ready |

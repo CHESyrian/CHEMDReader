@@ -28,3 +28,23 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-vis
 body.light-theme{--bg:#f4f6fb;--panel:#fff;--panel-2:#eef1fb;--ink:#1c2440;--muted:#5c6680;--faint:#8d97ad;--line:rgba(38,51,91,.14);--line-strong:rgba(38,51,91,.24);--accent:#6d50d8;--accent-2:#078f89;--shadow:0 24px 70px rgba(32,45,86,.16)}body.light-theme .app-shell{background:radial-gradient(circle at 70% 0,rgba(126,96,226,.12),transparent 31%),var(--bg)}body.light-theme .sidebar{background:linear-gradient(180deg,#f7f8ff,#edf0fa)}body.light-theme .topbar{background:rgba(244,246,251,.78)}body.light-theme .toc-sidebar{background:rgba(247,248,255,.88)}body.light-theme .search-panel{background:rgba(255,255,255,.96)}body.light-theme .document-body{color:#45506a}body.light-theme .document-body pre{background:#e9edfa;color:#26345c}body.light-theme .document-body code{color:#543eb4;background:rgba(109,80,216,.1)}body.light-theme .document-body pre code{color:#26345c}
 @media(max-width:1050px){.toc-sidebar{display:none}.main-panel{margin-right:0}}
 @media(max-width:720px){.main-panel{margin-left:0}.sidebar{width:min(290px,88vw);transform:translateX(-100%);box-shadow:20px 0 60px rgba(0,0,0,.3)}.sidebar.open{transform:translateX(0)}.mobile-close{display:grid}.sidebar-collapse,.sidebar-resizer{display:none}.sidebar-backdrop{position:fixed;inset:0;z-index:9;display:none;background:rgba(0,0,0,.45)}.sidebar-backdrop.open{display:block}.topbar{min-height:62px;padding:0 18px}.mobile-menu{display:grid}.content-wrap{width:calc(100% - 36px);padding:46px 0 70px}.search-panel{margin:14px 18px 0}.statusbar{padding:0 18px}.welcome-view{margin-top:2vh}.welcome-view h1{font-size:43px}.sidebar-collapsed .sidebar{width:min(290px,88vw);padding:24px 18px 16px}.sidebar-collapsed .sidebar{transform:translateX(-100%)}.sidebar-collapsed .sidebar span,.sidebar-collapsed .workspace-card,.sidebar-collapsed .sidebar-actions,.sidebar-collapsed .tree-heading,.sidebar-collapsed .tree,.sidebar-collapsed .sidebar-footer{display:flex}.sidebar-collapsed .sidebar-header{padding:0}.sidebar-collapsed .brand span:last-child{display:inline}.sidebar-collapsed .sidebar-collapse{display:none}}
+
+/* Nested quote hierarchy: each level gets its own inset rail and breathing room. */
+.document-body blockquote {
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.document-body blockquote blockquote {
+  margin: .75em 0 .25em;
+  border-left-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 5%, transparent);
+}
+.document-body blockquote blockquote blockquote {
+  border-left-color: #f0abfc;
+  background: color-mix(in srgb, #f0abfc 5%, transparent);
+}
+@media(max-width:520px){
+  .document-body blockquote { padding-left: 12px; }
+}

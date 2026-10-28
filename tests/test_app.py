@@ -111,3 +111,47 @@ def test_tables_and_horizontal_rules_render_as_html():
     assert "<th>Name</th>" in html
     assert "<td>Ready</td>" in html
     assert "<hr>" in html
+
+
+def test_lists_and_links_render_as_semantic_html():
+    html = render_markdown("- First item\n- [Example](https://example.com)\n\n1. Step one\n2. Step two")
+    assert "<ul>" in html
+    assert "<li>First item</li>" in html
+    assert '<a href="https://example.com">Example</a>' in html
+    assert "<ol>" in html
+    assert "<li>Step two</li>" in html
+
+
+def test_unsafe_markdown_links_are_not_clickable():
+    html = render_markdown("[Bad](javascript:alert(1))")
+    assert "javascript:" not in html
+    assert 'href=' not in html
+
+
+def test_blockquotes_render_with_compact_nested_markers():
+    html = render_markdown("> Outer\n>> Inner\n>>> Deep\n>\n> Back")
+    assert html.count("<blockquote>") == 3
+    assert html.count("</blockquote>") == 3
+    assert "<p>Outer</p>" in html
+    assert "<p>Inner</p>" in html
+    assert "<p>Deep</p>" in html
+    assert "<p>Back</p>" in html
+
+
+def test_blockquote_markers_inside_code_stay_unchanged():
+    html = render_markdown("```markdown\n>> Not a quote\n```")
+    assert '<code class="language-markdown">&gt;&gt; Not a quote\n</code>' in html
+    assert "<blockquote>" not in html
+
+
+def test_dollar_math_is_restored_as_mathjax_markup():
+    html = render_markdown("Inline $\\mu + \\sigma$\n\n$$\nE = mc^2\n$$")
+    assert '<span class="math-inline">\\(\\mu + \\sigma\\)</span>' in html
+    assert '<span class="math-display">\\[\nE = mc^2\n\\]</span>' in html
+
+
+def test_math_is_not_parsed_inside_code():
+    html = render_markdown("`$not_math$`\n\n```latex\n$also_not_math$\n```")
+    assert '<code>$not_math$</code>' in html
+    assert '<code class="language-latex">$also_not_math$\n</code>' in html
+    assert "math-inline" not in html

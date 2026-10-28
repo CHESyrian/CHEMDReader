@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Launch CHEMDReader against a documentation directory.
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+VENV_DIR="${HOME}/PyVenv"
+HOST="${HOST:-127.0.0.1}"
+PORT="${PORT:-5000}"
+URL="http://${HOST}:${PORT}"
+
+usage() {
+    printf 'Usage: %s PATH\n' "$(basename "$0")"
+    printf '\nStart CHEMDReader with PATH as the server-side Markdown root.\n'
+    printf '\nArguments:\n'
+    printf '  PATH          Existing directory containing Markdown files\n'
+    printf '  -h, --help    Display this help and usage information\n'
+    printf '\nEnvironment:\n'
+    printf '  HOST          Bind host (default: %s)\n' "$HOST"
+    printf '  PORT          Bind port (default: %s)\n' "$PORT"
+    printf '  VENV_DIR      Existing virtual environment: %s\n' "$VENV_DIR"
+}
+
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 64
+fi
+
+if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
+    usage
+    exit 0
+fi
+
+if [[ $# -ne 1 ]]; then
+    usage >&2
+    exit 64
+fi
+
+ROOT_PATH="$(cd -- "$1" 2>/dev/null && pwd -P)" || {
+    printf 'mdreader: directory does not exist: %s\n' "$1" >&2
+    exit 66
+}
+
+if [[ ! -d "$ROOT_PATH" ]]; then
+    printf 'mdreader: path is not a directory: %s\n' "$1" >&2
+    exit 66
+fi
+
+if [[ ! -r "${VENV_DIR}/bin/activate" || ! -x "${VENV_DIR}/bin/python" ]]; then
+    printf 'mdreader: existing virtual environment not found at %s\n' "$VENV_DIR" >&2
+    printf 'Create it separately, then install requirements before running this launcher.\n' >&2
+    exit 69
+fi
+
+# Activate only; this script deliberately does not create, install, or modify the environment.
+# shellcheck disable=SC1091
+source "${VENV_DIR}/bin/activate"
+
+cd "$ROOT_PATH"
+ROOT_DIR="$ROOT_PATH" HOST="$HOST" PORT="$PORT" nohup python "${PROJECT_DIR}/app.py" >/dev/null 2>&1 &
+SERVER_PID=$!
+
+SERVER_READY=0
+for _ in {1..30}; do
+    if curl --silent --fail --output /dev/null "$URL/"; then
+        SERVER_READY=1
+        break
+    fi
+    sleep 0.2
+done
+
+if [[ "$SERVER_READY" -ne 1 ]]; then
+    if kill -0 "$SERVER_PID" 2>/dev/null; then
+        kill "$SERVER_PID" 2>/dev/null || true
+    fi
+    printf 'mdreader: timed out waiting for %s\n' "$URL" >&2
+    exit 1
+fi
+
+printf 'CHEMDReader is running for %s at %s (PID %s)\n' "$ROOT_PATH" "$URL" "$SERVER_PID"

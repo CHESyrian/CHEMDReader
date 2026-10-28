@@ -4,13 +4,13 @@ from __future__ import annotations
 import mimetypes
 import os
 import re
+from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote, unquote
 
 import bleach
 import markdown
 from flask import Flask, abort, jsonify, render_template, request, send_file
-from markupsafe import Markup
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_ROOT = BASE_DIR / "sample_docs"
@@ -52,6 +52,121 @@ def allow_all_attributes(tag: str, name: str, value: str) -> bool:
 
 
 ALLOWED_ATTRIBUTES = {"*": allow_all_attributes}
+
+_FENCED_BLOCK_RE = re.compile(r"(?ms)^ {0,3}(?P<fence>`{3,}|~{3,})[^\n]*\n.*?^ {0,3}(?P=fence)[ \t]*$")
+
+
+def _normalize_compact_blockquotes(raw: str) -> str:
+    """Convert compact ``>>`` quote markers to standard nested Markdown syntax."""
+    def normalize_segment(segment: str) -> str:
+        return re.sub(
+            r"(?m)^([ \t]*)(>{2,})(?:[ \t]+)?(.*)$",
+            lambda item: f"{item.group(1)}{' '.join('>' for _ in item.group(2))} {item.group(3)}",
+            segment,
+        )
+
+    chunks: list[str] = []
+    cursor = 0
+    for match in _FENCED_BLOCK_RE.finditer(raw):
+        chunks.append(normalize_segment(raw[cursor : match.start()]))
+        chunks.append(match.group(0))
+        cursor = match.end()
+    chunks.append(normalize_segment(raw[cursor:]))
+    return "".join(chunks)
+
+
+def _is_escaped(value: str, index: int) -> bool:
+    """Return whether the character at index is preceded by an odd backslash run."""
+    backslashes = 0
+    index -= 1
+    while index >= 0 and value[index] == "\\":
+        backslashes += 1
+        index -= 1
+    return backslashes % 2 == 1
+
+
+def _protect_math_segment(segment: str, tokens: list[tuple[str, str]]) -> str:
+    """Replace dollar-delimited math outside inline code with stable placeholders."""
+    output: list[str] = []
+    index = 0
+    while index < len(segment):
+        if segment[index] == "`":
+            code_delimiter = re.match(r"`+", segment[index:])
+            if code_delimiter:
+                delimiter = code_delimiter.group(0)
+                closing = segment.find(delimiter, index + len(delimiter))
+                if closing != -1:
+                    end = closing + len(delimiter)
+                    output.append(segment[index:end])
+                    index = end
+                    continue
+
+        if segment.startswith("$$", index) and not _is_escaped(segment, index):
+            closing = index + 2
+            while True:
+                closing = segment.find("$$", closing)
+                if closing == -1 or not _is_escaped(segment, closing):
+                    break
+                closing += 2
+            if closing != -1 and closing > index + 2:
+                tokens.append(("display", segment[index + 2 : closing]))
+                output.append(f"CHEMDREADERMATHDISPLAY{len(tokens) - 1}TOKEN")
+                index = closing + 2
+                continue
+
+        if (
+            segment[index] == "$"
+            and not _is_escaped(segment, index)
+            and (index == 0 or segment[index - 1] != "$")
+            and (index + 1 >= len(segment) or segment[index + 1] != "$")
+        ):
+            closing = index + 1
+            while True:
+                closing = segment.find("$", closing)
+                if closing == -1 or not _is_escaped(segment, closing):
+                    break
+                closing += 1
+            if (
+                closing != -1
+                and closing > index + 1
+                and "\n" not in segment[index + 1 : closing]
+                and (closing + 1 >= len(segment) or segment[closing + 1] != "$")
+            ):
+                tokens.append(("inline", segment[index + 1 : closing]))
+                output.append(f"CHEMDREADERMATHINLINE{len(tokens) - 1}TOKEN")
+                index = closing + 1
+                continue
+
+        output.append(segment[index])
+        index += 1
+    return "".join(output)
+
+
+def _protect_math(raw: str) -> tuple[str, list[tuple[str, str]]]:
+    """Protect math outside fenced code blocks before Markdown parsing."""
+    tokens: list[tuple[str, str]] = []
+    chunks: list[str] = []
+    cursor = 0
+    for match in _FENCED_BLOCK_RE.finditer(raw):
+        chunks.append(_protect_math_segment(raw[cursor : match.start()], tokens))
+        chunks.append(match.group(0))
+        cursor = match.end()
+    chunks.append(_protect_math_segment(raw[cursor:], tokens))
+    return "".join(chunks), tokens
+
+
+def _restore_math(html: str, tokens: list[tuple[str, str]]) -> str:
+    """Restore protected math as MathJax-compatible, escaped HTML text."""
+    for index, (kind, latex) in enumerate(tokens):
+        escaped_latex = html_escape(latex, quote=False)
+        if kind == "display":
+            replacement = f'<span class="math-display">\\[{escaped_latex}\\]</span>'
+            token = f"CHEMDREADERMATHDISPLAY{index}TOKEN"
+        else:
+            replacement = f'<span class="math-inline">\\({escaped_latex}\\)</span>'
+            token = f"CHEMDREADERMATHINLINE{index}TOKEN"
+        html = html.replace(token, replacement)
+    return html
 
 
 def safe_path(relative_path: str, *, must_exist: bool = True) -> Path:
@@ -102,10 +217,11 @@ def _rewrite_asset_urls(html: str, markdown_path: str) -> str:
 
 
 def render_markdown(raw: str, markdown_path: str = "") -> str:
+    protected, math_tokens = _protect_math(_normalize_compact_blockquotes(raw))
     parser = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"])
-    rendered = parser.convert(raw)
+    rendered = parser.convert(protected)
     cleaned = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, protocols={"http", "https", "mailto"}, strip=True)
-    return _rewrite_asset_urls(cleaned, markdown_path)
+    return _rewrite_asset_urls(_restore_math(cleaned, math_tokens), markdown_path)
 
 
 def document_index(raw: str) -> list[dict[str, str | int]]:
@@ -128,7 +244,7 @@ def add_security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self'")
     return response
 
 

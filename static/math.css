@@ -1,0 +1,26 @@
+.math-inline {
+  display: inline-block;
+  color: var(--ink);
+}
+
+.math-display {
+  display: block;
+  max-width: 100%;
+  margin: 1.45em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.3em 0.2em;
+  color: var(--ink);
+  text-align: center;
+}
+
+.math-display mjx-container {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.math-inline mjx-container,
+.math-display mjx-container {
+  color: inherit;
+}

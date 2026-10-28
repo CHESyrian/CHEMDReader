@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='layout-dynamic.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='math.css') }}">
 </head>
 <body>
   <div class="app-shell">
@@ -73,6 +74,8 @@
       <div class="toc-inner"><div class="toc-eyebrow">ON THIS PAGE</div><nav class="toc-list" id="toc-list"><div class="toc-empty">Open a document to see its headings.</div></nav></div>
     </aside>
   </div>
+  <script src="{{ url_for('static', filename='mathjax-config.js') }}" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
